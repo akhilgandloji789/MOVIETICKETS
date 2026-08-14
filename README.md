@@ -4,6 +4,13 @@ A complete, production-grade **Movie Ticket Booking Portal** featuring a cinemat
 
 ---
 
+## 🌐 Live Web Application
+
+- **Firebase Live URL**: [https://cinenoir-17497.web.app](https://cinenoir-17497.web.app)
+- **Alternative URL**: [https://cinenoir-17497.firebaseapp.com](https://cinenoir-17497.firebaseapp.com)
+
+---
+
 ## 🎨 Design System & Visual Palette
 
 - **Masterpiece Red (`#5A2132`)**: Used for primary call-to-actions, selected seat states, active navigation indicators, and glowing highlights.
@@ -53,6 +60,7 @@ A complete, production-grade **Movie Ticket Booking Portal** featuring a cinemat
 ## 🛠️ Tech Stack
 
 - **Framework**: React 19 + Vite 8
+- **Database / Backend**: Firebase 12 (Analytics & Hosting)
 - **Styling**: Custom CSS System + Tailwind CSS with Forms & Container Queries
 - **Icons**: Lucide Icons & Material Symbols Outlined
 - **Animations & Effects**: Canvas Confetti, CSS 3D Perspectives, Glassmorphism
@@ -85,9 +93,10 @@ A complete, production-grade **Movie Ticket Booking Portal** featuring a cinemat
    ```
    Open `http://localhost:5173/` in your browser.
 
-4. **Build for production**:
+4. **Build & Deploy to Firebase**:
    ```bash
    npm run build
+   npx firebase deploy --only hosting
    ```
 
 ---
