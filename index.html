@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineNoir — The Art of Cinema</title>
+    <!-- Tailwind CSS with Forms & Container Queries -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#551d2e",
+              "primary-container": "#5a2132",
+              "outline": "#9f8c8f",
+              "primary-fixed": "#ffd9e0",
+              "surface-container-lowest": "#0b0f12",
+              "surface-container-low": "#181c1f",
+              "surface-dim": "#101417",
+              "on-tertiary-fixed": "#002109",
+              "surface-container-high": "#262a2e",
+              "on-secondary-fixed-variant": "#494646",
+              "tertiary": "#9bd49f",
+              "on-secondary": "#323030",
+              "on-error": "#690005",
+              "on-secondary-fixed": "#1d1b1b",
+              "on-error-container": "#ffdad6",
+              "surface-container": "#1c2023",
+              "on-tertiary": "#003914",
+              "inverse-surface": "#e0e3e7",
+              "on-secondary-container": "#c0babb",
+              "tertiary-container": "#043e18",
+              "surface": "#101417",
+              "on-surface-variant": "#d7c1c4",
+              "on-primary-fixed-variant": "#703344",
+              "tertiary-fixed-dim": "#9bd49f",
+              "secondary-fixed": "#e7e1e1",
+              "on-surface": "#e0e3e7",
+              "background": "#101417",
+              "secondary-container": "#4e4b4b",
+              "surface-container-highest": "#313539",
+              "surface-tint": "#ffb1c3",
+              "secondary": "#cbc5c5",
+              "on-primary-fixed": "#3a0719",
+              "outline-variant": "#524346",
+              "on-background": "#e0e3e7",
+              "inverse-on-surface": "#2d3134",
+              "tertiary-fixed": "#b7f1ba",
+              "error": "#ffb4ab",
+              "secondary-fixed-dim": "#cbc5c5",
+              "error-container": "#93000a",
+              "surface-variant": "#313539",
+              "primary-fixed-dim": "#ffb1c3",
+              "inverse-primary": "#8d4a5b",
+              "surface-bright": "#363a3d",
+              "on-tertiary-container": "#73aa79",
+              "on-tertiary-fixed-variant": "#1c5128",
+              "primary": "#ffb1c3",
+              "on-primary-container": "#d58799"
+            },
+            borderRadius: {
+              "DEFAULT": "0.125rem",
+              "lg": "0.25rem",
+              "xl": "0.5rem",
+              "full": "0.75rem"
+            },
+            spacing: {
+              "stack-lg": "48px",
+              "margin-mobile": "20px",
+              "margin-desktop": "64px",
+              "stack-sm": "8px",
+              "unit": "4px",
+              "container-max": "1440px",
+              "gutter": "24px",
+              "stack-md": "24px"
+            },
+            fontFamily: {
+              "headline-lg": ["Playfair Display", "serif"],
+              "body-md": ["Hanken Grotesk", "sans-serif"],
+              "label-sm": ["JetBrains Mono", "monospace"],
+              "headline-lg-mobile": ["Playfair Display", "serif"],
+              "display-lg": ["Playfair Display", "serif"],
+              "title-md": ["Hanken Grotesk", "sans-serif"]
+            },
+            fontSize: {
+              "headline-lg": ["40px", { lineHeight: "1.2", fontWeight: "600" }],
+              "body-md": ["16px", { lineHeight: "1.6", fontWeight: "400" }],
+              "label-sm": ["12px", { lineHeight: "1.0", letterSpacing: "0.1em", fontWeight: "500" }],
+              "headline-lg-mobile": ["32px", { lineHeight: "1.2", fontWeight: "600" }],
+              "display-lg": ["64px", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700" }],
+              "title-md": ["20px", { lineHeight: "1.4", letterSpacing: "0.01em", fontWeight: "600" }]
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="bg-surface-container-lowest text-on-surface font-body-md min-h-screen flex flex-col antialiased selection:bg-primary-container selection:text-on-primary-container">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
