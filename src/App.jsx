@@ -1,4 +1,5 @@
 import React from 'react';
+import './firebase';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
