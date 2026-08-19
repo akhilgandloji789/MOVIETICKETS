@@ -277,6 +277,66 @@ export const AppProvider = ({ children }) => {
     return { success: true, message: `Successfully checked in ${found.movieTitle} (Seats: ${found.seats.join(', ')})!`, booking: found };
   };
 
+  // Movie Review & Rating Engine
+  const addMovieReview = (movieId, { user, rating, comment }) => {
+    const newReview = {
+      id: `rev-${Date.now()}`,
+      user: user || userProfile.name,
+      rating: Number(rating),
+      comment,
+      date: 'Just now',
+      helpfulCount: 0
+    };
+
+    setMovies(prevMovies => {
+      const updated = prevMovies.map(movie => {
+        if (movie.id === movieId) {
+          const currentReviews = movie.reviews || [];
+          const updatedReviews = [newReview, ...currentReviews];
+          
+          // Update average rating
+          const totalRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
+          const newAvg = (totalRating / updatedReviews.length).toFixed(1);
+
+          const updatedMovie = {
+            ...movie,
+            rating: Number(newAvg),
+            reviews: updatedReviews
+          };
+
+          if (selectedMovie && selectedMovie.id === movieId) {
+            setSelectedMovie(updatedMovie);
+          }
+          return updatedMovie;
+        }
+        return movie;
+      });
+      return updated;
+    });
+
+    showToast("Your review & rating have been published! ⭐", "success");
+  };
+
+  const toggleReviewHelpful = (movieId, reviewId) => {
+    setMovies(prevMovies => {
+      const updated = prevMovies.map(movie => {
+        if (movie.id === movieId && movie.reviews) {
+          const updatedReviews = movie.reviews.map(r => 
+            r.id === reviewId ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1 } : r
+          );
+          const updatedMovie = { ...movie, reviews: updatedReviews };
+          if (selectedMovie && selectedMovie.id === movieId) {
+            setSelectedMovie(updatedMovie);
+          }
+          return updatedMovie;
+        }
+        return movie;
+      });
+      return updated;
+    });
+    showToast("Marked review as helpful 👍", "info");
+  };
+
   return (
     <AppContext.Provider value={{
       currentView, setCurrentView, navigateTo,
@@ -284,6 +344,7 @@ export const AppProvider = ({ children }) => {
       location, setLocation,
       searchQuery, setSearchQuery, isSearchOpen, setIsSearchOpen,
       movies, setMovies, addMovie, updateMovie, deleteMovie,
+      addMovieReview, toggleReviewHelpful,
       theatres, setTheatres,
       offers,
       selectedMovie, setSelectedMovie,
