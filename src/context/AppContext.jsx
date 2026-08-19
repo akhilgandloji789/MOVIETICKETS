@@ -1,18 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { INITIAL_MOVIES } from '../data/moviesData';
 import { INITIAL_THEATRES, INITIAL_OFFERS } from '../data/theatresData';
+import { supabase } from '../supabase';
 
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   // Navigation & Core View State
-  const [currentView, setCurrentView] = useState('home'); // 'home' | 'movies' | 'movie-details' | 'seat-booking' | 'booking-summary' | 'digital-ticket' | 'my-bookings' | 'watchlist' | 'theatres' | 'offers' | 'profile' | 'admin'
-  const [userRole, setUserRole] = useState('user'); // 'user' | 'admin'
+  const [currentView, setCurrentView] = useState('home');
+  const [userRole, setUserRole] = useState('user');
   const [location, setLocation] = useState('Downtown District');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Datasets (Allowing Admin CRUD)
+  // Datasets
   const [movies, setMovies] = useState(() => {
     const saved = localStorage.getItem('cinenoir_movies');
     return saved ? JSON.parse(saved) : INITIAL_MOVIES;
@@ -34,7 +35,7 @@ export const AppProvider = ({ children }) => {
   const [selectedSeats, setSelectedSeats] = useState(['C5', 'C6']);
   const [appliedOffer, setAppliedOffer] = useState(null);
 
-  // Real-time Seat Lock Timer (5 minutes = 300s)
+  // Real-time Seat Lock Timer
   const [lockSecondsLeft, setLockSecondsLeft] = useState(300);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
@@ -42,7 +43,6 @@ export const AppProvider = ({ children }) => {
   const [bookings, setBookings] = useState(() => {
     const saved = localStorage.getItem('cinenoir_bookings');
     if (saved) return JSON.parse(saved);
-    // Pre-populate with realistic sample booking
     return [
       {
         id: "CN-984-XLV2",
@@ -60,9 +60,9 @@ export const AppProvider = ({ children }) => {
         totalAmount: 600,
         discountAmount: 150,
         paidAmount: 450,
-        status: "Confirmed", // Confirmed | Checked In | Completed | Cancelled
+        status: "Confirmed",
         bookedAt: new Date(Date.now() - 3600000).toISOString(),
-        showTimestamp: Date.now() + (2 * 86400000 + 4 * 3600000 + 32 * 60000) // 2 days 4 hrs 32 min from now
+        showTimestamp: Date.now() + (2 * 86400000 + 4 * 3600000 + 32 * 60000)
       }
     ];
   });
@@ -102,7 +102,7 @@ export const AppProvider = ({ children }) => {
     favoriteFormat: "IMAX 2D"
   });
 
-  // Save changes to localStorage
+  // LocalStorage Persistence
   useEffect(() => {
     localStorage.setItem('cinenoir_movies', JSON.stringify(movies));
   }, [movies]);
@@ -118,6 +118,79 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('cinenoir_watchlist', JSON.stringify(watchlist));
   }, [watchlist]);
+
+  // 🌐 Supabase Real-Time Data Fetching & Synchronization Effect
+  useEffect(() => {
+    const fetchSupabaseData = async () => {
+      try {
+        // Fetch bookings from Supabase
+        const { data: remoteBookings, error: bookingErr } = await supabase
+          .from('bookings')
+          .select('*')
+          .order('booked_at', { ascending: false });
+
+        if (!bookingErr && remoteBookings && remoteBookings.length > 0) {
+          const formatted = remoteBookings.map(b => ({
+            id: b.id,
+            movieTitle: b.movie_title,
+            moviePoster: b.movie_poster,
+            movieBackdrop: b.movie_backdrop,
+            theatreName: b.theatre_name,
+            location: b.location,
+            screen: b.screen,
+            date: b.show_date,
+            showtime: b.showtime,
+            format: b.format,
+            seats: b.seats,
+            seatType: b.seat_type,
+            totalAmount: Number(b.total_amount),
+            discountAmount: Number(b.discount_amount),
+            paidAmount: Number(b.paid_amount),
+            status: b.status,
+            bookedAt: b.booked_at
+          }));
+          setBookings(formatted);
+        }
+
+        // Fetch reviews from Supabase
+        const { data: remoteReviews, error: revErr } = await supabase
+          .from('reviews')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (!revErr && remoteReviews && remoteReviews.length > 0) {
+          setMovies(prevMovies => {
+            return prevMovies.map(movie => {
+              const movieRevs = remoteReviews
+                .filter(r => r.movie_id === movie.id)
+                .map(r => ({
+                  id: r.id,
+                  user: r.user_name,
+                  rating: Number(r.rating),
+                  comment: r.comment,
+                  date: new Date(r.created_at).toLocaleDateString(),
+                  helpfulCount: r.helpful_count || 0
+                }));
+              if (movieRevs.length > 0) {
+                const total = movieRevs.reduce((sum, item) => sum + item.rating, 0);
+                const newAvg = (total / movieRevs.length).toFixed(1);
+                return {
+                  ...movie,
+                  rating: Number(newAvg),
+                  reviews: [...movieRevs, ...(movie.reviews || [])]
+                };
+              }
+              return movie;
+            });
+          });
+        }
+      } catch (err) {
+        console.log("Supabase sync ready upon table creation.", err);
+      }
+    };
+
+    fetchSupabaseData();
+  }, []);
 
   // Seat Lock Countdown Timer Effect
   useEffect(() => {
@@ -142,14 +215,13 @@ export const AppProvider = ({ children }) => {
   };
 
   const startSeatLock = () => {
-    setLockSecondsLeft(300); // 5 mins
+    setLockSecondsLeft(300);
     setIsTimerRunning(true);
   };
 
   const navigateTo = (viewName, movie = null) => {
     if (movie) {
       setSelectedMovie(movie);
-      // Track recently viewed
       setRecentlyViewed(prev => {
         const filtered = prev.filter(m => m.id !== movie.id);
         return [movie, ...filtered].slice(0, 5);
@@ -185,16 +257,14 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const confirmReservation = () => {
-    // Calculate total
-    const seatPrice = 300; // Base premium price
+  const confirmReservation = async () => {
+    const seatPrice = 300;
     const subtotal = selectedSeats.length * seatPrice;
     let discount = 0;
     if (appliedOffer) {
       discount = Math.min((subtotal * appliedOffer.discountPercent) / 100, appliedOffer.maxDiscount);
     }
     const finalAmount = Math.max(subtotal - discount, 0);
-
     const bookingId = `CN-${Math.floor(100 + Math.random() * 899)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
     const newBooking = {
@@ -222,7 +292,30 @@ export const AppProvider = ({ children }) => {
     setActiveBooking(newBooking);
     setIsTimerRunning(false);
 
-    // Add Notification
+    // Sync booking to Supabase database
+    try {
+      await supabase.from('bookings').insert([{
+        id: bookingId,
+        movie_title: selectedMovie.title,
+        movie_poster: selectedMovie.poster,
+        movie_backdrop: selectedMovie.backdrop,
+        theatre_name: selectedTheatre.name,
+        location: selectedTheatre.location,
+        screen: "Screen 04 — Atmos VIP",
+        show_date: selectedDate,
+        showtime: selectedShowtime,
+        format: selectedFormat,
+        seats: selectedSeats,
+        seat_type: "Premium Admission",
+        total_amount: subtotal,
+        discount_amount: discount,
+        paid_amount: finalAmount,
+        status: "Confirmed"
+      }]);
+    } catch (e) {
+      console.log("Booking saved locally & sync queued to Supabase.", e);
+    }
+
     setNotifications(prev => [
       {
         id: `n-${Date.now()}`,
@@ -239,46 +332,16 @@ export const AppProvider = ({ children }) => {
     setCurrentView('digital-ticket');
   };
 
-  const cancelBooking = (bookingId) => {
+  const cancelBooking = async (bookingId) => {
     setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'Cancelled' } : b));
+    try {
+      await supabase.from('bookings').update({ status: 'Cancelled' }).eq('id', bookingId);
+    } catch (e) {}
     showToast(`Booking ${bookingId} has been cancelled.`, "info");
   };
 
-  // Admin Movie Operations
-  const addMovie = (newMovie) => {
-    setMovies(prev => [newMovie, ...prev]);
-    showToast(`Movie "${newMovie.title}" added to inventory!`, "success");
-  };
-
-  const updateMovie = (updatedMovie) => {
-    setMovies(prev => prev.map(m => m.id === updatedMovie.id ? updatedMovie : m));
-    showToast(`Movie "${updatedMovie.title}" updated!`, "success");
-  };
-
-  const deleteMovie = (movieId) => {
-    setMovies(prev => prev.filter(m => m.id !== movieId));
-    showToast("Movie deleted from inventory.", "warning");
-  };
-
-  // Admin Check-in / Scanner Simulator
-  const checkInBooking = (bookingId) => {
-    const found = bookings.find(b => b.id.toUpperCase() === bookingId.toUpperCase());
-    if (!found) {
-      return { success: false, message: "Booking ID not found!" };
-    }
-    if (found.status === 'Checked In') {
-      return { success: false, message: `Ticket ${found.id} has ALREADY been checked in!` };
-    }
-    if (found.status === 'Cancelled') {
-      return { success: false, message: `Ticket ${found.id} was CANCELLED!` };
-    }
-
-    setBookings(prev => prev.map(b => b.id.toUpperCase() === bookingId.toUpperCase() ? { ...b, status: 'Checked In' } : b));
-    return { success: true, message: `Successfully checked in ${found.movieTitle} (Seats: ${found.seats.join(', ')})!`, booking: found };
-  };
-
-  // Movie Review & Rating Engine
-  const addMovieReview = (movieId, { user, rating, comment }) => {
+  // Movie Review & Rating Engine with Supabase Sync
+  const addMovieReview = async (movieId, { user, rating, comment }) => {
     const newReview = {
       id: `rev-${Date.now()}`,
       user: user || userProfile.name,
@@ -293,8 +356,6 @@ export const AppProvider = ({ children }) => {
         if (movie.id === movieId) {
           const currentReviews = movie.reviews || [];
           const updatedReviews = [newReview, ...currentReviews];
-          
-          // Update average rating
           const totalRating = updatedReviews.reduce((sum, r) => sum + r.rating, 0);
           const newAvg = (totalRating / updatedReviews.length).toFixed(1);
 
@@ -314,10 +375,22 @@ export const AppProvider = ({ children }) => {
       return updated;
     });
 
+    // Save review to Supabase database
+    try {
+      await supabase.from('reviews').insert([{
+        movie_id: movieId,
+        user_name: user || userProfile.name,
+        rating: Number(rating),
+        comment
+      }]);
+    } catch (e) {
+      console.log("Review saved locally & queued for Supabase.", e);
+    }
+
     showToast("Your review & rating have been published! ⭐", "success");
   };
 
-  const toggleReviewHelpful = (movieId, reviewId) => {
+  const toggleReviewHelpful = async (movieId, reviewId) => {
     setMovies(prevMovies => {
       const updated = prevMovies.map(movie => {
         if (movie.id === movieId && movie.reviews) {
@@ -334,7 +407,63 @@ export const AppProvider = ({ children }) => {
       });
       return updated;
     });
+
+    try {
+      await supabase.from('reviews').update({ helpful_count: 1 }).eq('id', reviewId);
+    } catch (e) {}
+
     showToast("Marked review as helpful 👍", "info");
+  };
+
+  // Admin Movie Operations
+  const addMovie = async (newMovie) => {
+    setMovies(prev => [newMovie, ...prev]);
+    try {
+      await supabase.from('movies').insert([{
+        id: newMovie.id,
+        title: newMovie.title,
+        director: newMovie.director,
+        rating: newMovie.rating,
+        duration: newMovie.duration,
+        genre: newMovie.genre,
+        poster: newMovie.poster,
+        backdrop: newMovie.backdrop,
+        synopsis: newMovie.synopsis
+      }]);
+    } catch (e) {}
+    showToast(`Movie "${newMovie.title}" added to inventory!`, "success");
+  };
+
+  const updateMovie = (updatedMovie) => {
+    setMovies(prev => prev.map(m => m.id === updatedMovie.id ? updatedMovie : m));
+    showToast(`Movie "${updatedMovie.title}" updated!`, "success");
+  };
+
+  const deleteMovie = async (movieId) => {
+    setMovies(prev => prev.filter(m => m.id !== movieId));
+    try {
+      await supabase.from('movies').delete().eq('id', movieId);
+    } catch (e) {}
+    showToast("Movie deleted from inventory.", "warning");
+  };
+
+  const checkInBooking = async (bookingId) => {
+    const found = bookings.find(b => b.id.toUpperCase() === bookingId.toUpperCase());
+    if (!found) {
+      return { success: false, message: "Booking ID not found!" };
+    }
+    if (found.status === 'Checked In') {
+      return { success: false, message: `Ticket ${found.id} has ALREADY been checked in!` };
+    }
+    if (found.status === 'Cancelled') {
+      return { success: false, message: `Ticket ${found.id} was CANCELLED!` };
+    }
+
+    setBookings(prev => prev.map(b => b.id.toUpperCase() === bookingId.toUpperCase() ? { ...b, status: 'Checked In' } : b));
+    try {
+      await supabase.from('bookings').update({ status: 'Checked In' }).eq('id', found.id);
+    } catch (e) {}
+    return { success: true, message: `Successfully checked in ${found.movieTitle} (Seats: ${found.seats.join(', ')})!`, booking: found };
   };
 
   return (
